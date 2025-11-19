@@ -1,0 +1,330 @@
+1. What assumptions does linear regression make?
+Linear regression makes several assumptions that need to be met for the model to work well:
+1. Linearity: There's a linear relationship between features and target
+
+Meaning: The relationship can be represented by a straight line
+Check: Look at scatter plots
+
+2. Independence: Observations are independent of each other
+
+Meaning: One data point doesn't affect another
+Example: One house sale shouldn't influence another house's price in the dataset
+
+3. Homoscedasticity: Constant variance of residuals
+
+Meaning: Prediction errors should have similar spread across all predicted values
+Check: Residual plot should show random scatter, not a pattern
+
+4. Normality: Residuals are normally distributed
+
+Meaning: Errors should follow a bell curve
+Check: Histogram of residuals should look bell-shaped
+
+5. No Multicollinearity: Features aren't highly correlated with each other
+
+Meaning: Independent variables should be independent from each other
+Check: Correlation matrix, VIF scores
+
+What happens if you violate these?
+
+Predictions become unreliable
+Coefficients can't be interpreted correctly
+Model might work on training data but fail on new data
+
+In my house price project, I checked these using:
+
+Residual plots for homoscedasticity
+Histogram for normality
+Correlation matrix for multicollinearity
+
+
+2. How do you interpret the coefficients?
+Coefficients tell you how much the target variable changes when you change a feature by 1 unit, keeping everything else constant.
+Example from my project:
+If Area coefficient = $150:
+
+"For every 1 square foot increase in area, the house price increases by $150"
+All other features (bedrooms, bathrooms, age) stay the same
+
+If Age coefficient = -$2,000:
+
+"For every 1 year increase in age, the house price decreases by $2,000"
+Negative means inverse relationship
+
+The Intercept:
+
+This is the predicted price when all features are 0
+Usually doesn't make practical sense (you can't have a 0 sqft house)
+It's just the starting point of the equation
+
+Important points:
+
+Larger absolute value = bigger impact on price
+Sign (+ or -) shows direction of relationship
+Coefficients only make sense if assumptions are met
+Be careful with units (per sqft vs per 1000 sqft)
+
+In my model:
+
+Area had the largest coefficient → biggest price driver
+Age was negative → older houses worth less
+This matches real-world intuition!
+
+
+3. What is R² score and its significance?
+R² (R-squared) or "coefficient of determination" tells you how well your model explains the variance in the data.
+Range: 0 to 1 (or 0% to 100%)
+Interpretation:
+
+R² = 0.85: Model explains 85% of variance in house prices
+R² = 0.50: Model explains only 50% of variance
+R² = 1.00: Perfect prediction (rarely happens in real data)
+
+What it means:
+
+Higher R² = better model fit
+Shows how much better your model is compared to just predicting the mean
+
+General guidelines:
+
+Above 0.7: Good model
+0.5 to 0.7: Moderate
+Below 0.5: Poor (or complex problem)
+
+Limitations:
+
+Can be misleading with small datasets
+Always increases when you add more features (even useless ones)
+Should use Adjusted R² for multiple features
+High R² doesn't mean causation
+
+Example from my project:
+
+Multiple regression: R² = 0.85 (good!)
+Simple regression: R² = 0.72 (decent, but multiple is better)
+
+This means using multiple features (area, bedrooms, bathrooms, age) together explains more variance than using just area alone.
+
+4. When would you prefer MSE over MAE?
+Both measure prediction errors, but in different ways:
+MAE (Mean Absolute Error):
+
+Average of absolute errors
+All errors treated equally
+In dollars: easier to interpret
+Example: MAE = $30,000 means "on average, predictions are off by $30k"
+
+MSE (Mean Squared Error):
+
+Average of squared errors
+Penalizes large errors more heavily
+Units are squared (harder to interpret)
+Example: MSE = $1,000,000,000 (not intuitive)
+
+When to use MSE:
+
+Large errors are really bad: If being off by $100k is way worse than being off by $50k twice
+Mathematical convenience: Easier to work with derivatives (for optimization)
+When you want to punish outliers: Big mistakes get penalized exponentially
+Standard in many algorithms: Most ML algorithms minimize MSE by default
+
+When to use MAE:
+
+Outliers present: MSE gets too influenced by extreme values
+Easy interpretation: Want to explain to non-technical people
+All errors matter equally: Being off by $50k is just twice as bad as $25k
+Robust model: Don't want outliers to dominate training
+
+RMSE (Root Mean Squared Error):
+
+Best of both worlds
+Square root of MSE
+Same units as target (dollars)
+Still penalizes large errors
+This is what I prefer!
+
+In my project, I reported all three so people can see different perspectives on model performance.
+
+5. How do you detect multicollinearity?
+Multicollinearity is when your features are too correlated with each other. It's a problem because the model can't tell which feature is actually important.
+Detection Methods:
+1. Correlation Matrix (Easiest)
+pythoncorrelation = df.corr()
+
+Look for correlations > 0.8 or < -0.8 between features
+Example: If bedrooms and bathrooms are 0.9 correlated, that's a problem
+
+2. VIF (Variance Inflation Factor) (Most common)
+pythonfrom statsmodels.stats.outliers_influence import variance_inflation_factor
+
+VIF < 5: No problem
+VIF 5-10: Moderate multicollinearity
+VIF > 10: Serious problem
+
+3. Visual Inspection
+
+Scatter plot matrix
+Heatmap of correlations
+
+Signs you have multicollinearity:
+
+High R² but few significant coefficients
+Coefficients have unexpected signs
+Small changes in data cause big changes in coefficients
+Model works on training but fails on testing
+
+How to fix it:
+
+Remove one: Drop one of the correlated features
+Combine them: Create a single feature from both (like FamilySize = Bedrooms + Bathrooms)
+PCA: Use dimensionality reduction
+Regularization: Use Ridge or Lasso regression
+Collect more data: Sometimes helps
+
+In my house price project:
+
+Bedrooms and bathrooms might be correlated (bigger houses have both)
+I checked the correlation matrix to make sure it wasn't too high
+If it was a problem, I could create a "total rooms" feature instead
+
+
+6. What is the difference between simple and multiple regression?
+Simple Linear Regression:
+
+Uses ONE feature to predict the target
+Formula: y = mx + b
+Example: Predict price using only area
+
+Multiple Linear Regression:
+
+Uses MULTIPLE features to predict the target
+Formula: y = b0 + b1×x1 + b2×x2 + b3×x3 + ...
+Example: Predict price using area, bedrooms, bathrooms, age
+
+Key Differences:
+AspectSimpleMultipleFeatures12 or moreVisualization2D lineCan't easily visualizeComplexitySimpleMore complexAccuracyUsually lowerUsually higherInterpretationVery easyHarderOverfitting riskLowHigher
+When to use Simple:
+
+Quick exploratory analysis
+When one feature clearly dominates
+Need easy interpretation
+Small dataset
+
+When to use Multiple:
+
+Want better predictions
+Multiple factors affect outcome
+Have enough data
+Real-world problems (usually multiple factors matter)
+
+Example from my project:
+Simple (using only area):
+
+R² = 0.72
+Easy to understand
+Good starting point
+
+Multiple (using area + bedrooms + bathrooms + age):
+
+R² = 0.85
+Better predictions
+More realistic
+Harder to visualize
+
+In practice, almost always use multiple regression because real-world problems depend on multiple factors. But simple regression is good for learning and initial exploration.
+
+7. Can linear regression be used for classification?
+Short answer: No, you shouldn't.
+Why not?
+
+Output is continuous: Linear regression predicts numbers (like $300,000), not categories (like "Yes" or "No")
+No probability bounds: Predictions can be any number, even negative or greater than 1
+Doesn't make sense: If you predict 0.8 for a house, what does that mean? It's 80% of a house?
+Better alternatives exist: Use Logistic Regression instead!
+
+Example of the problem:
+Trying to predict if someone will buy a house (0 = No, 1 = Yes):
+
+Linear regression might predict 1.3 (what does 130% yes mean?)
+Or it might predict -0.2 (negative probability?)
+Predictions aren't interpretable
+
+What to use instead:
+For classification:
+
+Logistic Regression: Outputs probabilities (0 to 1)
+Decision Trees: For more complex boundaries
+SVM: For clear separation
+Neural Networks: For complex patterns
+
+Exception (not recommended):
+
+Some people use linear regression and round to 0 or 1
+Called "Linear Discriminant Analysis"
+But it's not proper classification
+Very limited and unreliable
+
+The confusion:
+
+Name is misleading: "Logistic Regression" is actually for classification!
+Linear Regression → Continuous predictions (regression problems)
+Logistic Regression → Binary predictions (classification problems)
+
+
+8. What happens if you violate regression assumptions?
+When assumptions are violated, things can go wrong in different ways:
+1. Violating Linearity:
+
+Problem: Model can't capture the true relationship
+Result: Poor predictions, low R²
+Fix: Try polynomial features, transform variables, or use non-linear models
+
+2. Violating Independence:
+
+Problem: Standard errors are wrong
+Result: Can't trust p-values or confidence intervals
+Example: Time series data where today's price affects tomorrow's
+Fix: Use time series models or add lag features
+
+3. Violating Homoscedasticity (constant variance):
+
+Problem: Some predictions are more reliable than others
+Result: Confidence intervals are wrong, inefficient estimates
+Sign: Residual plot shows a cone or funnel shape
+Fix: Transform target (log transformation), use weighted regression
+
+4. Violating Normality:
+
+Problem: Hypothesis tests don't work properly
+Result: Can't trust p-values (but predictions might still be okay)
+Sign: Histogram of residuals is skewed or has outliers
+Fix: Transform variables, remove outliers, use robust regression
+
+5. Violating No Multicollinearity:
+
+Problem: Coefficients become unstable and unreliable
+Result: Can't interpret which features matter, high variance
+Sign: High VIF, big coefficient changes with small data changes
+Fix: Remove correlated features, use regularization (Ridge/Lasso)
+
+Real-world impact:
+In my house price project:
+
+If I had skewed residuals → predictions might be off for expensive houses
+If features were correlated → couldn't tell if bedrooms or bathrooms matter more
+If variance wasn't constant → predictions less reliable for certain price ranges
+
+Important note:
+
+Violations don't always ruin predictions
+Sometimes predictions are still useful even with violations
+But interpretation and confidence in the model suffer
+Always check assumptions using diagnostic plots!
+
+How to check:
+
+Residual plots
+Q-Q plots
+Correlation matrices
+VIF scores
+Histogram of residuals
