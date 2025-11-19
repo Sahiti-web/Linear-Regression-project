@@ -1,0 +1,322 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import warnings
+warnings.filterwarnings('ignore')
+
+# Set style
+sns.set_style("whitegrid")
+plt.rcParams['figure.figsize'] = (10, 6)
+
+print("HOUSE PRICE PREDICTION - LINEAR REGRESSION")
+print("-" * 60)
+
+# Load dataset
+# Note: Replace with your actual dataset path
+df = pd.read_csv('Housing.csv')
+
+print("\n1. DATASET OVERVIEW")
+print("-" * 60)
+print(f"Dataset Shape: {df.shape[0]} rows × {df.shape[1]} columns")
+print("\nFirst 5 rows:")
+print(df.head())
+
+print("\nDataset Info:")
+df.info()
+
+print("\nBasic Statistics:")
+print(df.describe())
+
+# Check for missing values
+print("\n2. MISSING VALUES CHECK")
+print("-" * 60)
+missing = df.isnull().sum()
+if missing.sum() > 0:
+    print("\nMissing values found:")
+    print(missing[missing > 0])
+else:
+    print("\nNo missing values found!")
+
+# Convert categorical features to numerical (0/1 for binary ones)
+# Assuming 'guestroom' is a binary column ('yes'/'no')
+df['guestroom'] = df['guestroom'].map({'yes': 1, 'no': 0})
+
+# For this example, let's assume we're predicting house price based on:
+# - Square footage (area)
+# - Number of bedrooms
+# - Number of bathrooms
+# - Age of house
+
+# Select features and target
+# Adjust these column names based on your actual dataset
+print("\n3. FEATURE SELECTION")
+print("-" * 60)
+
+# Example feature selection - modify based on your dataset
+# Assuming columns: 'area', 'bedrooms', 'bathrooms', 'age', 'price'
+features = ['area', 'bedrooms', 'bathrooms', 'guestroom']  # Modify as needed
+target = 'price'  # Modify as needed
+
+print(f"\nFeatures: {features}")
+print(f"Target: {target}")
+
+X = df[features]
+y = df[target]
+
+print(f"\nX shape: {X.shape}")
+print(f"y shape: {y.shape}")
+
+# Correlation analysis
+print("\n4. CORRELATION ANALYSIS")
+print("-" * 60)
+correlation = df[features + [target]].corr()
+print("\nCorrelation with Price:")
+print(correlation[target].sort_values(ascending=False))
+
+# Visualize correlations
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation, annot=True, fmt='.2f', cmap='coolwarm', center=0)
+plt.title('Correlation Matrix', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.savefig('correlation_matrix.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Split data into training and testing sets
+print("\n5. TRAIN-TEST SPLIT")
+print("-" * 60)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+print(f"Training set: {X_train.shape[0]} samples")
+print(f"Testing set: {X_test.shape[0]} samples")
+print(f"Split ratio: 80-20")
+
+# Create and train the model
+print("\n6. MODEL TRAINING")
+print("-" * 60)
+model = LinearRegression()
+model.fit(X_train, y_train)
+print("Model trained successfully!")
+
+# Model coefficients
+print("\n7. MODEL COEFFICIENTS")
+print("-" * 60)
+print(f"Intercept: ${model.intercept_:,.2f}")
+print("\nCoefficients:")
+for feature, coef in zip(features, model.coef_):
+    print(f"  {feature}: ${coef:,.2f}")
+
+# Interpret coefficients
+print("\nInterpretation:")
+for feature, coef in zip(features, model.coef_):
+    if coef > 0:
+        print(f"  - For every 1 unit increase in {feature}, price increases by ${coef:,.2f}")
+    else:
+        print(f"  - For every 1 unit increase in {feature}, price decreases by ${abs(coef):,.2f}")
+
+# Make predictions
+print("\n8. MAKING PREDICTIONS")
+print("-" * 60)
+y_pred_train = model.predict(X_train)
+y_pred_test = model.predict(X_test)
+print("Predictions completed!")
+
+# Evaluate the model
+print("\n9. MODEL EVALUATION")
+print("-" * 60)
+
+# Training set metrics
+train_mae = mean_absolute_error(y_train, y_pred_train)
+train_mse = mean_squared_error(y_train, y_pred_train)
+train_rmse = np.sqrt(train_mse)
+train_r2 = r2_score(y_train, y_pred_train)
+
+print("\nTraining Set Performance:")
+print(f"  MAE:  ${train_mae:,.2f}")
+print(f"  MSE:  ${train_mse:,.2f}")
+print(f"  RMSE: ${train_rmse:,.2f}")
+print(f"  R² Score: {train_r2:.4f} ({train_r2*100:.2f}%)")
+
+# Testing set metrics
+test_mae = mean_absolute_error(y_test, y_pred_test)
+test_mse = mean_squared_error(y_test, y_pred_test)
+test_rmse = np.sqrt(test_mse)
+test_r2 = r2_score(y_test, y_pred_test)
+
+print("\nTesting Set Performance:")
+print(f"  MAE:  ${test_mae:,.2f}")
+print(f"  MSE:  ${test_mse:,.2f}")
+print(f"  RMSE: ${test_rmse:,.2f}")
+print(f"  R² Score: {test_r2:.4f} ({test_r2*100:.2f}%)")
+
+# Check for overfitting
+print("\nOverfitting Check:")
+if abs(train_r2 - test_r2) < 0.05:
+    print("  ✓ Model is generalizing well (no significant overfitting)")
+elif train_r2 > test_r2 + 0.1:
+    print("  ⚠ Model might be overfitting (training performance much better than testing)")
+else:
+    print("  ✓ Model performance is acceptable")
+
+# Visualization 1: Actual vs Predicted
+print("\n10. VISUALIZATIONS")
+print("-" * 60)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Training set
+axes[0].scatter(y_train, y_pred_train, alpha=0.5, color='blue')
+axes[0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()],
+             'r--', lw=2, label='Perfect Prediction')
+axes[0].set_xlabel('Actual Price', fontsize=12)
+axes[0].set_ylabel('Predicted Price', fontsize=12)
+axes[0].set_title('Training Set: Actual vs Predicted', fontsize=12, fontweight='bold')
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# Testing set
+axes[1].scatter(y_test, y_pred_test, alpha=0.5, color='green')
+axes[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+             'r--', lw=2, label='Perfect Prediction')
+axes[1].set_xlabel('Actual Price', fontsize=12)
+axes[1].set_ylabel('Predicted Price', fontsize=12)
+axes[1].set_title('Testing Set: Actual vs Predicted', fontsize=12, fontweight='bold')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('actual_vs_predicted.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Visualization 2: Residual Plot
+print("Creating residual plot...")
+residuals_train = y_train - y_pred_train
+residuals_test = y_test - y_pred_test
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+axes[0].scatter(y_pred_train, residuals_train, alpha=0.5, color='blue')
+axes[0].axhline(y=0, color='r', linestyle='--', lw=2)
+axes[0].set_xlabel('Predicted Price', fontsize=12)
+axes[0].set_ylabel('Residuals', fontsize=12)
+axes[0].set_title('Training Set: Residual Plot', fontsize=12, fontweight='bold')
+axes[0].grid(True, alpha=0.3)
+
+axes[1].scatter(y_pred_test, residuals_test, alpha=0.5, color='green')
+axes[1].axhline(y=0, color='r', linestyle='--', lw=2)
+axes[1].set_xlabel('Predicted Price', fontsize=12)
+axes[1].set_ylabel('Residuals', fontsize=12)
+axes[1].set_title('Testing Set: Residual Plot', fontsize=12, fontweight='bold')
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('residual_plot.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Visualization 3: Feature Importance (Coefficients)
+print("Creating coefficient plot...")
+coef_df = pd.DataFrame(
+    {
+        'Feature': features,
+        'Coefficient': model.coef_
+    }
+).sort_values('Coefficient', ascending=True)
+
+plt.figure(figsize=(10, 6))
+plt.barh(coef_df['Feature'], coef_df['Coefficient'], color='teal')
+plt.xlabel('Coefficient Value', fontsize=12)
+plt.ylabel('Features', fontsize=12)
+plt.title('Feature Coefficients', fontsize=14, fontweight='bold')
+plt.axvline(x=0, color='red', linestyle='--', lw=1)
+plt.grid(True, alpha=0.3, axis='x')
+plt.tight_layout()
+plt.savefig('feature_coefficients.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Simple Linear Regression Example (if you want to show one feature)
+print("\n11. SIMPLE LINEAR REGRESSION (Single Feature Example)")
+print("-" * 60)
+
+# Let's use the feature with highest correlation
+best_feature = correlation[target].drop(target).idxmax()
+print(f"Using feature with highest correlation: {best_feature}")
+
+X_simple = df[[best_feature]]
+y_simple = df[target]
+
+X_train_simple, X_test_simple, y_train_simple, y_test_simple = train_test_split(
+    X_simple, y_simple, test_size=0.2, random_state=42
+)
+
+model_simple = LinearRegression()
+model_simple.fit(X_train_simple, y_train_simple)
+y_pred_simple = model_simple.predict(X_test_simple)
+
+r2_simple = r2_score(y_test_simple, y_pred_simple)
+print(f"\nSimple Linear Regression R² Score: {r2_simple:.4f}")
+
+# Plot simple linear regression
+plt.figure(figsize=(10, 6))
+plt.scatter(X_test_simple, y_test_simple, alpha=0.5, label='Actual Data', color='blue')
+plt.plot(X_test_simple, y_pred_simple, color='red', linewidth=2, label='Regression Line')
+plt.xlabel(best_feature, fontsize=12)
+plt.ylabel('Price', fontsize=12)
+plt.title(f'Simple Linear Regression: {best_feature} vs Price', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('simple_regression_line.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Error distribution
+print("\n12. ERROR DISTRIBUTION")
+print("-" * 60)
+plt.figure(figsize=(10, 6))
+plt.hist(residuals_test, bins=30, edgecolor='black', alpha=0.7, color='skyblue')
+plt.xlabel('Residuals', fontsize=12)
+plt.ylabel('Frequency', fontsize=12)
+plt.title('Distribution of Residuals (Test Set)', fontsize=14, fontweight='bold')
+plt.axvline(x=0, color='red', linestyle='--', lw=2, label='Zero Error')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('error_distribution.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Sample predictions
+print("\n13. SAMPLE PREDICTIONS")
+print("-" * 60)
+sample_size = min(5, len(X_test))
+sample_indices = np.random.choice(X_test.index, sample_size, replace=False)
+
+print("\nComparing actual vs predicted prices for random samples:\n")
+for idx in sample_indices:
+    actual = y_test.loc[idx]
+    predicted = model.predict(X.loc[[idx]])[0]
+    error = actual - predicted
+    error_pct = (error / actual) * 100
+
+    print(f"Sample {idx}:")
+    print(f"  Actual Price:    ${actual:,.2f}")
+    print(f"  Predicted Price: ${predicted:,.2f}")
+    print(f"  Error:           ${error:,.2f} ({error_pct:.1f}%)")
+    print()
+
+# Summary
+print("\n14. SUMMARY")
+print("-" * 60)
+print(f"Model Type: Multiple Linear Regression")
+print(f"Number of Features: {len(features)}")
+print(f"Training Samples: {len(X_train)}")
+print(f"Testing Samples: {len(X_test)}")
+print(f"\nBest Performance Metric:")
+print(f"  R² Score (Test): {test_r2:.4f} - Model explains {test_r2*100:.1f}% of variance")
+print(f"  RMSE (Test): ${test_rmse:,.2f} - Average prediction error")
+print(f"\nMost Important Feature: {features[np.argmax(np.abs(model.coef_))]}")
+print(f"  Coefficient: ${model.coef_[np.argmax(np.abs(model.coef_))]:,.2f}")
+
+print("\nAll visualizations saved successfully!")
+print("-" * 60)
